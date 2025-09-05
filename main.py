@@ -4,14 +4,15 @@ from aiogram.filters import Command
 
 from app.handlers_anketa import router as anketa_router  
 from app.handlers_info import router as info_router 
-
+from app.handlers_correct import router as correct_router
 
 
 async def main():
-    bot = Bot(token='YOUR_TOKEN') 
+    bot = Bot(token='') 
     dp = Dispatcher()
     dp.include_router(anketa_router)
     dp.include_router(info_router)
+    dp.include_router(correct_router)
     await dp.start_polling(bot)
     
 
