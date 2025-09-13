@@ -11,11 +11,20 @@ class Register(StatesGroup):
     date_giving = State()#Дата выдачи
     date_birthday = State()#Дата рождения
     series_and_number = State()#Серия и номер
-    position_registratoin = State()#Адрес регистрации
+    photo_pasporta = State()#Первая страница паспорта
+    position_registration = State()#Адрес регистрации
+    photo_registration = State()#фото регистрации
     snils = State()#СНИЛС
     inn = State()#ИНН
     photo_snils = State()#фото снилс
     photo_inn = State()#фото инн
+    photo_pact = State()#фото договора
+    type_registration = State()#гпх или смз
+    examination = State()
+    proverka = State()
+    correct_field = State()      
+    correct_value = State()
+    country = State()
+    vacancy = State()
+    type_vacancy = State()
 
-
-    
