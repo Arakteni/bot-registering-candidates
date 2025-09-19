@@ -28,7 +28,8 @@ FIELD_MAPPING = {
 }
 
 @router.message(Command("start"))
-async def Choice(message: types.Message):
+async def Choice(message: types.Message, state: FSMContext):
+    await state.clear()
     if message.from_user.id == ADMIN_ID:
         await message.answer("Новых данных пока что нет")
     else:
@@ -36,6 +37,7 @@ async def Choice(message: types.Message):
         await message.answer('До начала оформления можете ознакомиться с "Информацией о работе", а также после оформления.\n'
                          'Во время оформления(заполнения анкеты) ознакомиться с "Информацией о работе" будет нельзя',
                          reply_markup=kb.btn_choice)
+        
 
 @router.message(F.text.in_(["Начать оформление", "Вернуться к оформлению"]))
 async def Citizenship(message: types.Message, state: FSMContext):
@@ -70,7 +72,7 @@ async def Number(message: types.Message, state: FSMContext):
 async def After_work(message: types.Message, state: FSMContext):
     await state.update_data(number=message.text)
     await state.set_state(st.Register.after_work)
-    await message.answer("Работали ли вы раньше в самокате, если да, то какого числа была последняя смена?\nВ формате дд.мм.гг")
+    await message.answer('''Работали ли вы раньше в самокате, если да, то какого числа была последняя смена?\nВ формате дд.мм.гг\nЕсли вы не работали, то укажите "Не было смен"''', reply_markup=kb.btn_not_work)
 
 
 
@@ -122,21 +124,25 @@ def validate_date(input_date_str: str, date_format: str = "%d.%m.%y") -> dict:
 @router.message(st.Register.after_work)
 async def Medical_book(message: types.Message, state: FSMContext):
     user_date = message.text.strip()
-    
-    # Проверяем дату
-    date_validation = validate_date(user_date)
-    
-    if not date_validation['is_valid']:
-        await message.answer(date_validation['error_message'])
-        return
-    
-    if not date_validation['is_31_days']:
-        await message.answer(f"С указанной даты прошло только {date_validation['days_passed']} дней. Требуется не менее 31 дня.")
-        return
-    else:
+    if message.text == 'Не было смен':
         await state.update_data(after_work=message.text)
         await state.set_state(st.Register.medical_book)
         await message.answer("Есть ли у вас медицинская книжка?\nДля устройства она не требуется, но её нужно оформить в течении 14 дней после устройства на работу")
+
+    else:
+        date_validation = validate_date(user_date)
+        
+        if not date_validation['is_valid']:
+            await message.answer(date_validation['error_message'])
+            return
+        
+        if not date_validation['is_31_days']:
+            await message.answer(f"С указанной даты прошло только {date_validation['days_passed']} дней. Требуется не менее 31 дня.")
+            return
+        else:
+            await state.update_data(after_work=message.text)
+            await state.set_state(st.Register.medical_book)
+            await message.answer("Есть ли у вас медицинская книжка?\nДля устройства она не требуется, но её нужно оформить в течении 14 дней после устройства на работу")
 
 @router.message(st.Register.medical_book)  
 async def Position_giving(message: types.Message, state: FSMContext):
@@ -329,7 +335,6 @@ async def Proverka(message: types.Message, state: FSMContext):
 9. Серия и номер паспорта: {user_data.get('series_and_number', 'не указаны')}
 10. СНИЛС: {user_data.get('snils', 'не указан')}
 11. ИНН: {user_data.get('inn', 'не указан')}
-12. Тип договора: {user_data.get('type_registration', 'не указан')}
 
 Если какие-то данные не верны, нажмите "Исправить данные"
 Если все верно, нажмите "Всё верно"
@@ -341,10 +346,10 @@ async def Proverka(message: types.Message, state: FSMContext):
 # Обработчик для исправления данных
 @router.message(F.text == 'Исправить данные')
 async def correct_data(message: types.Message, state: FSMContext):
-    await message.answer("Введите номер поля, которое хотите исправить (1-12):\n\n"
+    await message.answer("Введите номер поля, которое хотите исправить (1-11):\n\n"
                       "1. Гражданство\n2. Возраст\n3. Номер телефона\n4. Последняя смена\n"
                       "5. Мед. книжка\n6. Место выдачи паспорта\n7. Дата выдачи паспорта\n"
-                      "8. Дата рождения\n9. Серия и номер паспорта\n10. СНИЛС\n11. ИНН\n12. Тип договора")
+                      "8. Дата рождения\n9. Серия и номер паспорта\n10. СНИЛС\n11. ИНН")
     await state.set_state(st.Register.correct_field)
 
 @router.message(st.Register.correct_field)
