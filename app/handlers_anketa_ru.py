@@ -89,10 +89,8 @@ def validate_date(input_date_str: str, date_format: str = "%d.%m.%y") -> dict:
         }
     """
     try:
-        # Преобразуем строку в объект datetime
         input_date = datetime.strptime(input_date_str, date_format)
         
-        # Проверяем, что дата не в будущем
         current_date = datetime.now()
         if input_date > current_date:
             return {
@@ -102,7 +100,6 @@ def validate_date(input_date_str: str, date_format: str = "%d.%m.%y") -> dict:
                 'is_31_days': None
             }
         
-        # Вычисляем разницу в днях
         time_difference = current_date - input_date
         days_passed = time_difference.days
         
@@ -181,11 +178,9 @@ async def Position_regestration(message: types.Message, state: FSMContext):
         return
     
     try:
-        # Получаем самое качественное фото
         photo = message.photo[-1]
         file_id = photo.file_id
         
-        # Сохраняем file_id в состоянии
         await state.update_data(photo_pasporta_file_id=file_id)
         
         
@@ -208,11 +203,9 @@ async def Snils(message: types.Message, state: FSMContext):
         return
     
     try:
-        # Получаем самое качественное фото
         photo = message.photo[-1]
         file_id = photo.file_id
         
-        # Сохраняем file_id в состоянии
         await state.update_data(photo_registration_file_id=file_id)
         
         
@@ -231,20 +224,19 @@ async def Photo_snils(message: types.Message, state: FSMContext):
 
 @router.message(st.Register.photo_snils)
 async def Inn(message: types.Message, state: FSMContext):
-    # Проверяем, что сообщение содержит фото
+    
     if not message.photo:
         await message.answer("Пожалуйста, отправьте фотографию СНИЛС.")
         return
     
     try:
-        # Получаем самое качественное фото
+
         photo = message.photo[-1]
         file_id = photo.file_id
         
-        # Сохраняем file_id в состоянии
+
         await state.update_data(photo_snils_file_id=file_id)
         
-        # Переходим к следующему шагу - ИНН
         await state.set_state(st.Register.inn)
         await message.answer("Теперь введите номер ИНН (текстом)")
         
@@ -255,7 +247,6 @@ async def Inn(message: types.Message, state: FSMContext):
 async def Photo_inn(message: types.Message, state: FSMContext):
     inn_text = message.text.strip()
     
-    # Простая валидация ИНН (12 цифр для физлица)
     if not inn_text.isdigit() or len(inn_text) != 12:
         await message.answer("ИНН должен состоять из 12 цифр. Пожалуйста, введите корректный ИНН:")
         return
@@ -266,17 +257,16 @@ async def Photo_inn(message: types.Message, state: FSMContext):
 
 @router.message(st.Register.photo_inn)
 async def handle_inn_photo(message: types.Message, state: FSMContext):
-    # Проверяем, что сообщение содержит фото
+
     if not message.photo:
         await message.answer("Пожалуйста, отправьте фотографию ИНН.")
         return
     
     try:
-        # Получаем самое качественное фото
         photo = message.photo[-1]
         file_id = photo.file_id
         
-        # Сохраняем file_id в состоянии
+
         await state.update_data(photo_inn_file_id=file_id)
         await state.set_state(st.Register.type_registration)
         await message.answer("Вы хотите оформиться по гпх или смз?\nПри гпх налоги платит компания\nПри смз налоги платите вы\nНа доход это не влияет", reply_markup=kb.btn_gph_smz)
@@ -302,14 +292,13 @@ async def End_registration(message: types.Message, state: FSMContext):
         return
     
     try:
-        # Получаем самое качественное фото
         photo = message.photo[-1]
         file_id = photo.file_id
         
-        # Сохраняем file_id в состоянии
+
         await state.update_data(photo_pact_file_id=file_id)
         await state.set_state(st.Register.examination)
-        # Получаем ВСЕ данные из состояния
+
         user_data = await state.get_data()
 
         await message.answer("Все нужные документы прикреплены. Проверьте свои данные перед отправкой", reply_markup=kb.btn_finish)
@@ -339,11 +328,9 @@ async def Proverka(message: types.Message, state: FSMContext):
 Если какие-то данные не верны, нажмите "Исправить данные"
 Если все верно, нажмите "Всё верно"
 '''
-    # НЕ очищаем состояние!
     await state.set_state(None)
     await message.answer(check_message, reply_markup=kb.btn_correct)
 
-# Обработчик для исправления данных
 @router.message(F.text == 'Исправить данные')
 async def correct_data(message: types.Message, state: FSMContext):
     await message.answer("Введите номер поля, которое хотите исправить (1-11):\n\n"
@@ -376,7 +363,6 @@ async def handle_correct_value(message: types.Message, state: FSMContext):
     field_name = user_data.get('correcting_field')
     new_value = message.text
     
-    # Валидация для разных полей
     if field_name == 'age':
         try:
             age_value = int(new_value)
@@ -402,13 +388,11 @@ async def handle_correct_value(message: types.Message, state: FSMContext):
             await message.answer("ИНН должен состоять из 12 цифр. Пожалуйста, введите корректный ИНН:")
             return
     
-    # Обновляем значение
     await state.update_data({field_name: new_value})
     await state.update_data(correcting_field=None)
     
     await message.answer("✅ Данные успешно обновлены!")
     
-    # Возвращаемся к проверке
     await Proverka(message, state)
     await state.set_state(None)
 
@@ -416,14 +400,6 @@ async def handle_correct_value(message: types.Message, state: FSMContext):
 async def Send_to_admin(message: types.Message, state: FSMContext, bot: Bot):
     user_data = await state.get_data()
 
-    # 🔍 ОТЛАДКА: Выводим все данные в консоль (обязательно!)
-    print("\n" + "="*50)
-    print("📤 ОТПРАВКА АДМИНУ — ДАННЫЕ ИЗ СОСТОЯНИЯ:")
-    for key, value in user_data.items():
-        print(f"{key}: {value}")
-    print("="*50 + "\n")
-
-    # Формируем сообщение
     check_message = f'''
 Новая анкета от пользователя @{message.from_user.username}:
 1. Гражданство: {user_data.get('citizenship', '❌ НЕ УКАЗАНО')}
@@ -444,7 +420,6 @@ async def Send_to_admin(message: types.Message, state: FSMContext, bot: Bot):
         await bot.send_message(ADMIN_ID, check_message)
         print("✅ Текстовое сообщение отправлено админу")
 
-        # 🖼️ Список фото с понятными именами для отладки
         photo_map = {
             "Фото паспорта (1 стр.)": user_data.get('photo_pasporta_file_id'),
             "Фото регистрации": user_data.get('photo_registration_file_id'), 
